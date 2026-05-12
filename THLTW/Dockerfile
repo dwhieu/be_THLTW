@@ -5,11 +5,17 @@ COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Stage 2: Run stage
-FROM eclipse-temurin:21-jre-alpine
+# Stage 2: Run stage - Chuyển sang bản JRE đầy đủ (không phải alpine) để ổn định hơn
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
-# Tối ưu RAM cho gói Free của Render (giới hạn 300MB cho Java)
-# Và cấu hình Port linh hoạt theo biến $PORT của Render
-ENTRYPOINT ["java", "-Xmx300m", "-Xms300m", "-jar", "app.jar", "--server.port=${PORT:8080}"]
+# Giảm Xmx xuống một chút để dành RAM cho OS của Render
+# Thêm các tham số tối ưu cho môi trường container RAM thấp
+ENTRYPOINT ["java", \
+            "-Xmx256m", \
+            "-Xms256m", \
+            "-XX:+UseSerialGC", \
+            "-Xss512k", \
+            "-jar", "app.jar", \
+            "--server.port=${PORT:10000}"]
